@@ -1,16 +1,26 @@
+use bevy::utils::HashSet;
+
 use crate::vec_2d::{Index2d, Vec2d};
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum DisjoinSetEntry {
+    Parent(HashSet<Index2d>),
+    Child(Index2d),
+}
 
 #[derive(Debug, Clone)]
 pub struct DisjointSet2d {
     group_count: usize,
-    parents: Vec2d<Index2d>,
+    parents: Vec2d<DisjoinSetEntry>,
 }
 
 impl DisjointSet2d {
     pub fn from_vec_2d<T: Eq>(data: &Vec2d<T>) -> DisjointSet2d {
         let mut disjoint_set = DisjointSet2d {
             group_count: data.width * data.height,
-            parents: Vec2d::generate(data.width, data.height, |x, y| (x, y)),
+            parents: Vec2d::generate(data.width, data.height, |x, y| {
+                DisjoinSetEntry::Parent(HashSet::from([(x, y)]))
+            }),
         };
 
         for y in 0..data.height {
@@ -41,33 +51,52 @@ impl DisjointSet2d {
         let mut current_index = index;
 
         loop {
-            let parent_index = *self.parents.get(current_index)?;
-
-            if parent_index == current_index {
-                break;
+            match self.parents.get(current_index)? {
+                DisjoinSetEntry::Parent(_) => return Some(current_index),
+                DisjoinSetEntry::Child(parent_index) => current_index = *parent_index,
             }
-
-            current_index = parent_index;
         }
+    }
 
-        Some(current_index)
+    pub fn get_linked(&self, index: Index2d) -> Option<&HashSet<Index2d>> {
+        match self.parents.get(self.get_parent(index)?)? {
+            DisjoinSetEntry::Parent(set) => Some(set),
+            DisjoinSetEntry::Child(_) => None,
+        }
     }
 
     pub fn link(&mut self, a: Index2d, b: Index2d) {
-        let a_parent = match self.get_parent(a) {
+        let a_parent_index = match self.get_parent(a) {
             Some(p) => p,
             None => return,
         };
-        let b_parent = match self.get_parent(b) {
+        let b_parent_index = match self.get_parent(b) {
             Some(p) => p,
             None => return,
         };
 
-        if a_parent == b_parent {
+        if a_parent_index == b_parent_index {
             return;
         }
 
-        self.parents.set(a_parent, b_parent);
+        let a_set = match self.parents.get(a_parent_index) {
+            Some(DisjoinSetEntry::Parent(set)) => set,
+            _ => return,
+        };
+
+        let b_set = match self.parents.get(b_parent_index) {
+            Some(DisjoinSetEntry::Parent(set)) => set,
+            _ => return,
+        };
+
+        self.parents.set(
+            a_parent_index,
+            DisjoinSetEntry::Parent(a_set.union(b_set).copied().collect()),
+        );
+
+        self.parents
+            .set(b_parent_index, DisjoinSetEntry::Child(a_parent_index));
+
         self.group_count -= 1;
     }
 }

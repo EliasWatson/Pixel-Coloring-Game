@@ -110,16 +110,13 @@ impl ArtBoard {
     }
 
     fn fill_pixels(&self, pixel_query: &mut Query<(&mut Pixel, &mut Sprite)>, parent: Index2d) {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let index = (x as usize, y as usize);
-                match self.pixel_disjoint_set.get_parent(index) {
-                    Some(pixel_parent) if pixel_parent == parent => {
-                        self.color_pixel(pixel_query, index);
-                    }
-                    _ => {}
-                }
-            }
+        let linked_indices = match self.pixel_disjoint_set.get_linked(parent) {
+            Some(i) => i,
+            None => return,
+        };
+
+        for index in linked_indices {
+            self.color_pixel(pixel_query, *index);
         }
     }
 

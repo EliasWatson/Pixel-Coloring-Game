@@ -32,6 +32,10 @@ impl<T> Vec2d<T> {
         self.data.get(index.1)?.get(index.0)
     }
 
+    pub fn get_mut(&mut self, index: Index2d) -> Option<&mut T> {
+        self.data.get_mut(index.1)?.get_mut(index.0)
+    }
+
     pub fn set(&mut self, index: Index2d, value: T) {
         let row = match self.data.get_mut(index.1) {
             Some(r) => r,
