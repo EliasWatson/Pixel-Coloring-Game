@@ -24,7 +24,7 @@ fn setup(mut commands: Commands, mut art_board: ResMut<ArtBoard>) {
     camera_bundle.transform.translation = Vec3::new(
         (art_board.width as f32 / 2.0) - 0.5,
         (art_board.height as f32 / 2.0) - 0.5,
-        0.0,
+        999.9,
     );
     camera_bundle.projection.scaling_mode = ScalingMode::Auto {
         min_width: art_board.width as f32,
@@ -37,10 +37,11 @@ fn setup(mut commands: Commands, mut art_board: ResMut<ArtBoard>) {
 }
 
 fn tile_painting(
+    mut commands: Commands,
     mouse_button_input: Res<Input<MouseButton>>,
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    art_board: Res<ArtBoard>,
+    mut art_board: ResMut<ArtBoard>,
     mut pixel_query: Query<(&mut Pixel, &mut Sprite)>,
 ) {
     if mouse_button_input.pressed(MouseButton::Left) {
@@ -60,7 +61,7 @@ fn tile_painting(
             let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
             let world_pos: Vec2 = world_pos.truncate();
 
-            art_board.fill_pixels_at_position(&mut pixel_query, world_pos);
+            art_board.fill_pixels_at_position(&mut commands, &mut pixel_query, world_pos);
         }
     }
 }
